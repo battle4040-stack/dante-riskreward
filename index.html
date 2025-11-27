@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>주식단테 손익비 시스템 대시보드 v4</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Noto Sans KR", sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #020617 0, #020617 45%, #000 100%);
+      color: #e5e7eb;
+    }
+    .dashboard {
+      width: 1150px;
+      max-width: 96vw;
+      padding: 26px 30px 30px;
+      border-radius: 20px;
+      background: linear-gradient(145deg, #020617, #020617 55%, #020617);
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(148, 163, 184, 0.12);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 22px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f9fafb;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #7dd3fc;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr 1.4fr;
+      gap: 18px;
+    }
+    .card {
+      background: radial-gradient(circle at top left, #020617 0, #020617 55%);
+      border-radius: 16px;
+      padding: 16px 18px 14px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.95);
+      margin-top: 0;
+    }
+    .card h3 {
+      font-size: 14px;
+      color: #e5e7eb;
+      margin-bottom: 4px;
+    }
+    .card-small {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .row-item {
+      flex: 1;
+    }
+    .label {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 3px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 5px 7px;
+      border-radius: 8px;
+      border: 1px solid rgba(75, 85, 99, 0.9);
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 12px;
+    }
+    .slider-wrapper {
+      margin-top: 8px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0ea5e9, #22c55e);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #f9fafb;
+      border: 2px solid #0ea5e9;
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.35);
+      cursor: pointer;
+    }
+    .value-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .value-label {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .value-number {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .highlight {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, #22c55e, #4ade80, #38bdf8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .highlight-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+    .tag-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.16);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.45);
+    }
+    .tag-blue {
+      background: rgba(37, 99, 235, 0.22);
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+    .chart-wrapper {
+      height: 250px;
+      margin-top: 10px;
+    }
+    .footer-note {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 10px;
+      text-align: right;
+    }
+    .card + .chart-card {
+      margin-top: 18px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .chart-wrapper { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <div>
+      <div class="title">주식단테 손익비 시스템 대시보드 v4</div>
+      <div class="subtitle">
+        손절 %, 목표 %, 승률, 1회 투자금으로 손익 구조를 보고,
+        아래에서 2차 분할매수(예: -15%) 시 평균 매수가와 손절·목표가 변화를 함께 확인할 수 있습니다.
+      </div>
+    </div>
+    <div class="badge">Risk / Reward · KRW · Simulation</div>
+  </div>
+
+  <!-- 1. 맨 위 3개 카드 -->
+  <div class="grid">
+    <!-- 매매 구조 입력 -->
+    <div class="card">
+      <h3>매매 구조 입력</h3>
+      <div class="card-small">본인이 쓰는 단타·스윙·중장기 기준을 그대로 입력하세요.</div>
+      <div class="row">
+        <div class="row-item">
+          <div class="label">손절 폭 (%)</div>
+          <input type="number" id="riskPercent" value="2" step="0.1" />
+        </div>
+        <div class="row-item">
+          <div class="label">목표 폭 (%)</div>
+          <input type="number" id="rewardPercent" value="4" step="0.1" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div class="row-item">
+          <div class="label">승률 (%)</div>
+          <input type="number" id="winRateInput" value="50" step="1" />
+        </div>
+        <div class="row-item">
+          <div class="label">1회 매매 투자금 (₩)</div>
+          <input type="number" id="capitalPerTrade" value="2000000" step="100000" />
+        </div>
+      </div>
+      <div class="value-row" style="margin-top:10px;">
+        <div class="value-label">손익비 (목표 수익 ÷ 손절 손실)</div>
+        <div class="value-number" id="rrLabel">2.00 : 1</div>
+      </div>
+      <div class="value-row">
+        <div class="value-label">1회 손절 시 손실금액</div>
+        <div class="value-number" id="oneLossLabel">₩40,000</div>
+      </div>
+    </div>
+
+    <!-- 기대값 카드 -->
+    <div class="card">
+      <h3>기대값(Expectancy)</h3>
+      <div class="card-small">
+        기대값 = 승률×목표 수익 − (1−승률)×손절 손실 (1회 매매 기준, 원화 기준).
+      </div>
+
+      <div class="value-row" style="margin-top:6px;">
+        <div class="value-label">승률 (Win Rate)</div>
+        <div class="value-number" id="winRateLabel">50%</div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="highlight" id="expectancyMoneyLabel">+₩20,000</div>
+        <div class="highlight-sub" id="expectancyInfoLabel">
+          1회 매매를 할 때 평균적으로 이 정도 금액이 계좌에 더해지거나 빠져나오는 구조입니다.
+        </div>
+      </div>
+
+      <div class="tag-row">
+        <div class="tag">사람마다 다른 기준 입력 가능</div>
+        <div class="tag tag-blue">손익비 기반 시스템 검증</div>
+        <div class="tag">원화 기준 기대수익 확인</div>
+      </div>
+    </div>
+
+    <!-- N회 이론 시뮬 -->
+    <div class="card">
+      <h3>N회 매매 시뮬레이션(이론값)</h3>
+      <div class="card-small">
+        동일한 구조로 N회 반복 매매했을 때의 <b>이론적 평균 누적 수익</b>을 계산합니다.
+      </div>
+      <div class="value-row" style="margin-top:6px;">
+        <div class="value-label">매매 횟수 (N)</div>
+        <div class="value-number" id="tradesCountLabel">50회</div>
+      </div>
+      <div class="slider-wrapper">
+        <input type="range" id="tradesSlider" min="10" max="200" step="5" value="50" />
+      </div>
+      <div class="value-row" style="margin-top:12px;">
+        <div class="value-label">N회 누적 기대수익 (이론)</div>
+        <div class="value-number" id="totalExpectancyMoneyLabel">+₩1,000,000</div>
+      </div>
+      <div class="value-row">
+        <div class="value-label">1회 손절 시 손실 구조</div>
+        <div class="value-number" id="structInfoLabel">손절 1번당 −₩40,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 2차 분할매수 카드 -->
+  <div class="card chart-card" style="margin-top:20px;">
+    <h3>2차 분할매수 구조 계산 (예: -15%에서 추가 매수)</h3>
+    <div class="card-small">
+      최초 매수가와 1차·2차 비중, 2차 진입 레벨(하락률)을 입력하면<br/>
+      평균 매수가와 그 기준 손절가·목표가를 계산합니다. 손절/목표 %는 상단 입력값을 그대로 사용합니다.
+    </div>
+
+    <!-- 최초 매수가 / 비중 -->
+    <div class="row" style="margin-top:6px;">
+      <div class="row-item">
+        <div class="label">최초 매수가 (₩)</div>
+        <input type="number" id="baseEntryPrice" value="50000" step="100" />
+      </div>
+      <div class="row-item">
+        <div class="label">1차 비중 (%)</div>
+        <input type="number" id="firstPortion" value="50" step="5" />
+      </div>
+      <div class="row-item">
+        <div class="label">2차 비중 (%)</div>
+        <input type="number" id="secondPortion" value="50" step="5" />
+      </div>
+    </div>
+
+    <!-- 최초 매수가 바로 밑: 2차 진입가 + 하락률 입력 -->
+    <div class="row" style="margin-top:8px;">
+      <div class="row-item">
+        <div class="label">2차 진입가 (₩)</div>
+        <input type="number" id="secondEntryPriceInput" value="42500" step="100" />
+      </div>
+      <div class="row-item">
+        <div class="label">2차 진입 레벨 (1차 매수가 대비 하락률 %)</div>
+        <input type="number" id="secondDropPercent" value="15" step="1" />
+      </div>
+    </div>
+
+    <!-- 요약 값들 -->
+    <div class="value-row" style="margin-top:10px;">
+      <div class="value-label">2차 진입가</div>
+      <div class="value-number" id="secondEntryPriceLabel">₩42,500</div>
+    </div>
+    <div class="value-row">
+      <div class="value-label">평균 매수가</div>
+      <div class="value-number" id="avgEntryPriceLabel">₩46,250</div>
+    </div>
+    <div class="value-row">
+      <div class="value-label">평균 매수가 기준 손절가</div>
+      <div class="value-number" id="splitStopPriceLabel">₩45,325</div>
+    </div>
+    <div class="value-row">
+      <div class="value-label">평균 매수가 기준 목표가</div>
+      <div class="value-number" id="splitTargetPriceLabel">₩48,100</div>
+    </div>
+    <div class="footer-note">
+      ※ 총 투자금은 상단의 1회 투자금 입력값을 기준으로 하고, 비중(%)에 따라 1차/2차에 나눠 들어간다고 가정합니다.
+    </div>
+  </div>
+
+  <!-- 3. 그래프 2개 -->
+  <div class="card chart-card">
+    <h3>이론상 누적 기대수익 곡선</h3>
+    <div class="card-small">
+      같은 구조로 N회 매매했을 때, 수학적으로 평균적으로 기대되는 누적 수익(이론값)을 원화 기준으로 보여줍니다.
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="eqChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <h3>실전 랜덤 시뮬레이션 곡선 (승/패 섞인 예시 1회)</h3>
+    <div class="card-small">
+      동일한 승률과 손익 구조에서 승·패가 랜덤하게 섞였다고 가정하고,
+      N회 매매 동안 누적 손익이 어떻게 움직일 수 있는지 <b>예시 1개</b>를 그려줍니다.
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="eqSimChart"></canvas>
+    </div>
+    <div class="footer-note">
+      ※ 실전 곡선은 무작위 예시 1개이며, 실제 매매에서는 이보다 더 좋거나 나쁜 다양한 경우의 수가 존재합니다.
+    </div>
+  </div>
+</div>
+
+<script>
+  const riskPercentInput   = document.getElementById('riskPercent');
+  const rewardPercentInput = document.getElementById('rewardPercent');
+  const winRateInput       = document.getElementById('winRateInput');
+  const capitalInput       = document.getElementById('capitalPerTrade');
+  const tradesSlider       = document.getElementById('tradesSlider');
+
+  const rrLabel                  = document.getElementById('rrLabel');
+  const oneLossLabel             = document.getElementById('oneLossLabel');
+  const winRateLabel             = document.getElementById('winRateLabel');
+  const expectancyMoneyLabel     = document.getElementById('expectancyMoneyLabel');
+  const expectancyInfoLabel      = document.getElementById('expectancyInfoLabel');
+  const tradesCountLabel         = document.getElementById('tradesCountLabel');
+  const totalExpectancyMoneyLabel= document.getElementById('totalExpectancyMoneyLabel');
+  const structInfoLabel          = document.getElementById('structInfoLabel');
+
+  // 분할매수 관련 요소
+  const baseEntryPriceInput      = document.getElementById('baseEntryPrice');
+  const firstPortionInput        = document.getElementById('firstPortion');
+  const secondPortionInput       = document.getElementById('secondPortion');
+  const secondDropPercentInput   = document.getElementById('secondDropPercent');
+  const secondEntryPriceInput    = document.getElementById('secondEntryPriceInput');
+
+  const secondEntryPriceLabel    = document.getElementById('secondEntryPriceLabel');
+  const avgEntryPriceLabel       = document.getElementById('avgEntryPriceLabel');
+  const splitStopPriceLabel      = document.getElementById('splitStopPriceLabel');
+  const splitTargetPriceLabel    = document.getElementById('splitTargetPriceLabel');
+
+  // 어떤 값을 마지막으로 수정했는지 추적 (drop / price)
+  let lastEdited = 'drop';
+
+  function formatCurrencySigned(v) {
+    const sign = v < 0 ? '-' : '+';
+    return sign + '₩' + Math.abs(Math.round(v)).toLocaleString('ko-KR');
+  }
+  function formatCurrency(v) {
+    return '₩' + Math.round(v).toLocaleString('ko-KR');
+  }
+
+  // 이론 그래프
+  const ctxEq = document.getElementById('eqChart').getContext('2d');
+  const eqChart = new Chart(ctxEq, {
+    type: 'line',
+    data: { labels: [], datasets: [{
+      label: '누적 기대수익 (이론, ₩)',
+      data: [],
+      borderColor: 'rgba(34,197,94,1)',
+      backgroundColor: 'rgba(34,197,94,0.18)',
+      tension: 0.15,
+      fill: true,
+      borderWidth: 2
+    }]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#9ca3af', font: { size: 11 } } }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#9ca3af', font: { size: 11 } },
+          grid:  { color: 'rgba(31,41,55,0.7)' }
+        },
+        y: {
+          ticks: {
+            color: '#6b7280',
+            font: { size: 10 },
+            callback: value => value.toLocaleString('ko-KR')
+          },
+          grid: { color: 'rgba(31,41,55,0.7)' }
+        }
+      }
+    }
+  });
+
+  // 실전 시뮬 그래프
+  const ctxSim = document.getElementById('eqSimChart').getContext('2d');
+  const eqSimChart = new Chart(ctxSim, {
+    type: 'line',
+    data: { labels: [], datasets: [{
+      label: '누적 손익 (랜덤 시뮬레이션, ₩)',
+      data: [],
+      borderColor: 'rgba(56,189,248,1)',
+      backgroundColor: 'rgba(56,189,248,0.18)',
+      tension: 0.2,
+      fill: true,
+      borderWidth: 2
+    }]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#9ca3af', font: { size: 11 } } }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#9ca3af', font: { size: 11 } },
+          grid:  { color: 'rgba(31,41,55,0.7)' }
+        },
+        y: {
+          ticks: {
+            color: '#6b7280',
+            font: { size: 10 },
+            callback: value => value.toLocaleString('ko-KR')
+          },
+          grid: { color: 'rgba(31,41,55,0.7)' }
+        }
+      }
+    }
+  });
+
+  function updateDashboard() {
+    const riskPct   = Math.max(0, Number(riskPercentInput.value));
+    const rewardPct = Math.max(0, Number(rewardPercentInput.value));
+    const winRate   = Math.min(100, Math.max(0, Number(winRateInput.value))) / 100;
+    const capital   = Math.max(0, Number(capitalInput.value));
+    const nTrades   = Math.max(1, Number(tradesSlider.value));
+
+    tradesCountLabel.textContent = nTrades + '회';
+    winRateLabel.textContent     = (winRate * 100).toFixed(0) + '%';
+
+    const lossPerTrade   = (riskPct   / 100) * capital;
+    const rewardPerTrade = (rewardPct / 100) * capital;
+
+    oneLossLabel.textContent = formatCurrency(lossPerTrade);
+    structInfoLabel.textContent = '손절 1번당 ' + formatCurrency(-lossPerTrade);
+
+    let rrText = '–';
+    if (lossPerTrade > 0 && rewardPerTrade > 0) {
+      const rrValue = rewardPerTrade / lossPerTrade;
+      rrText = rrValue.toFixed(2) + ' : 1';
+    }
+    rrLabel.textContent = rrText;
+
+    const expMoneyPerTrade = winRate * rewardPerTrade - (1 - winRate) * lossPerTrade;
+    expectancyMoneyLabel.textContent = formatCurrencySigned(expMoneyPerTrade);
+    expectancyInfoLabel.textContent =
+      '이 구조로 1번 매매할 때, 평균적으로 ' +
+      formatCurrencySigned(expMoneyPerTrade) +
+      ' 정도가 계좌에 더해지거나 빠져나오는 구조입니다.';
+
+    const totalExpMoney = expMoneyPerTrade * nTrades;
+    totalExpectancyMoneyLabel.textContent = formatCurrencySigned(totalExpMoney);
+
+    // 1) 이론 곡선
+    const labels = [];
+    const dataEq = [];
+    for (let i = 1; i <= nTrades; i++) {
+      labels.push(i + '회');
+      dataEq.push(expMoneyPerTrade * i);
+    }
+    eqChart.data.labels = labels;
+    eqChart.data.datasets[0].data = dataEq;
+    eqChart.update();
+
+    // 2) 랜덤 실전 시뮬레이션
+    const dataSim = [];
+    let equity = 0;
+    for (let i = 1; i <= nTrades; i++) {
+      const win = Math.random() < winRate;
+      equity += win ? rewardPerTrade : -lossPerTrade;
+      dataSim.push(equity);
+    }
+    eqSimChart.data.labels = labels;
+    eqSimChart.data.datasets[0].data = dataSim;
+    eqSimChart.update();
+
+    // === 2차 분할매수 계산 ===
+    const basePrice   = Math.max(0, Number(baseEntryPriceInput.value));
+    const firstPort   = Math.max(0, Number(firstPortionInput.value));
+    const secondPort  = Math.max(0, Number(secondPortionInput.value));
+
+    let drop2         = Math.max(0, Number(secondDropPercentInput.value));
+    let secondPrice   = Math.max(0, Number(secondEntryPriceInput.value));
+
+    // 두 값 연동 로직
+    if (basePrice > 0) {
+      if (lastEdited === 'drop') {
+        // 하락률 기준으로 2차 진입가 계산
+        secondPrice = basePrice * (1 - drop2 / 100);
+        secondEntryPriceInput.value = Math.round(secondPrice);
+      } else if (lastEdited === 'price') {
+        // 2차 진입가 기준으로 하락률 계산
+        if (secondPrice > 0) {
+          drop2 = (1 - secondPrice / basePrice) * 100;
+          if (drop2 < 0) drop2 = 0;     // 상승가는 0%로 클램프
+          secondDropPercentInput.value = drop2.toFixed(2);
+        }
+      }
+    }
+
+    const weightSum = firstPort + secondPort || 1;
+    const avgPrice  = (basePrice * firstPort + secondPrice * secondPort) / weightSum;
+
+    const stopPrice   = avgPrice * (1 - riskPct / 100);
+    const targetPrice = avgPrice * (1 + rewardPct / 100);
+
+    secondEntryPriceLabel.textContent = formatCurrency(secondPrice);
+    avgEntryPriceLabel.textContent    = formatCurrency(avgPrice);
+    splitStopPriceLabel.textContent   = formatCurrency(stopPrice);
+    splitTargetPriceLabel.textContent = formatCurrency(targetPrice);
+  }
+
+  // 일반 입력들은 바로 업데이트
+  [
+    riskPercentInput, rewardPercentInput, winRateInput, capitalInput,
+    baseEntryPriceInput, firstPortionInput, secondPortionInput
+  ].forEach(el => el.addEventListener('input', updateDashboard));
+
+  // 2차 진입 레벨 / 2차 진입가는 마지막 수정값 기준으로 서로 연동
+  secondDropPercentInput.addEventListener('input', () => {
+    lastEdited = 'drop';
+    updateDashboard();
+  });
+  secondEntryPriceInput.addEventListener('input', () => {
+    lastEdited = 'price';
+    updateDashboard();
+  });
+
+  tradesSlider.addEventListener('input', updateDashboard);
+
+  updateDashboard();
+</script>
+</body>
+</html>
